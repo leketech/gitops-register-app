@@ -46,6 +46,9 @@ pipeline {
                            git config --global user.email "lewis.leke@icloud.com"
                            git add deployment.yaml
                            git commit -m "Updated Deployment Manifest"
+                           // Ensure you are on the correct branch and it exists
+                           git fetch origin
+                           git checkout main
                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/leketech/gitops-register-app main
                         """
                     }
