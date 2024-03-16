@@ -1,7 +1,8 @@
 pipeline {
     agent { label "J-Agent" }
     environment {
-              APP_NAME = "register-app-pipeline"
+        APP_NAME = "register-app-pipeline"
+        IMAGE_TAG = "latest" // Define IMAGE_TAG or ensure it's passed from a previous step or trigger
     }
 
     stages {
@@ -12,34 +13,46 @@ pipeline {
         }
 
         stage("Checkout from SCM") {
-               steps {
-                   git branch: 'main', credentialsId: 'github', url: 'https://github.com/leketech/gitops-register-app'
-               }
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: 'main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/leketech/gitops-register-app',
+                        credentialsId: 'github'
+                    ]]
+                ])
+            }
         }
 
         stage("Update the Deployment Tags") {
             steps {
-                sh """
-                   cat deployment.yaml
-                   sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
-                   cat deployment.yaml
-                """
+                script {
+                    sh """
+                       cat deployment.yaml
+                       sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' deployment.yaml
+                       cat deployment.yaml
+                    """
+                }
             }
         }
 
         stage("Push the changed deployment file to Git") {
             steps {
-                sh """
-                   git config --global user.name "leketech"
-                   git config --global user.email "lewis.leke@icloud.com"
-                   git add deployment.yaml
-                   git commit -m "Updated Deployment Manifest"
-                """
-                withCredentials([gitUsernamePassword(credentialsId: 'github', gitToolName: 'Default')]) {
-                  sh "git push https://github.com/leketech/gitops-register-app main"
+                script {
+                    git config --global user.name "leketech"
+                    git config --global user.email "lewis.leke@icloud.com"
+                    sh """
+                       git add deployment.yaml
+                       git commit -m "Updated Deployment Manifest"
+                    """
+                    withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        sh """
+                           git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/leketech/gitops-register-app main
+                        """
+                    }
                 }
             }
         }
-      
     }
 }
