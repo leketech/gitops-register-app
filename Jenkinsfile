@@ -16,7 +16,7 @@ pipeline {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: 'main']],
+                    branches: [[name: '*/main']],
                     userRemoteConfigs: [[
                         url: 'https://github.com/leketech/gitops-register-app',
                         credentialsId: 'github'
@@ -40,14 +40,12 @@ pipeline {
         stage("Push the changed deployment file to Git") {
             steps {
                 script {
-                    git config --global user.name "leketech"
-                    git config --global user.email "lewis.leke@icloud.com"
-                    sh """
-                       git add deployment.yaml
-                       git commit -m "Updated Deployment Manifest"
-                    """
                     withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
                         sh """
+                           git config --global user.name "leketech"
+                           git config --global user.email "lewis.leke@icloud.com"
+                           git add deployment.yaml
+                           git commit -m "Updated Deployment Manifest"
                            git push https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/leketech/gitops-register-app main
                         """
                     }
